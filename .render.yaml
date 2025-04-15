@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: audio-converter
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
