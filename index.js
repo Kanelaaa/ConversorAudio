@@ -1,33 +1,50 @@
-const express = require('express');
-const multer = require('multer');
-const ffmpeg = require('fluent-ffmpeg');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+const PORT = process.env.PORT || 3000;
 
-app.post('/convert', upload.single('audio'), (req, res) => {
-  const inputPath = req.file.path;
-  const outputPath = path.join('outputs', `${Date.now()}.mp3`);
+// Cria pasta uploads se não existir
+const uploadsDir = path.resolve('uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
 
-  ffmpeg(inputPath)
-    .toFormat('mp3')
-    .on('end', () => {
-      const file = fs.readFileSync(outputPath);
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.send(file);
-      fs.unlinkSync(inputPath);
-      fs.unlinkSync(outputPath);
-    })
-    .on('error', (err) => {
-      console.error('Erro na conversão:', err);
-      res.status(500).send('Erro na conversão do áudio.');
-      fs.unlinkSync(inputPath);
-    })
-    .save(outputPath);
+// Configuração do multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage });
+
+// Rota principal
+app.get("/", (req, res) => {
+  res.send("Servidor de conversão está online 🚀");
 });
 
-app.listen(3000, () => {
-  console.log('Servidor rodando na porta 3000');
+// Endpoint de upload
+app.post("/convert", upload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhum arquivo foi enviado." });
+    }
+
+    console.log("Arquivo recebido:", req.file);
+
+    const audioPath = req.file.path;
+    res.json({ success: true, path: audioPath });
+  } catch (err) {
+    console.error("Erro interno:", err);
+    res.status(500).send("Erro interno no servidor");
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
