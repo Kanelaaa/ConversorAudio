@@ -3,6 +3,9 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 
+const bodyParser = require('body-parser');
+const { handleAudioConversion } = require('../audioProcessor/audioProcessor'); // Importando a função de descriptografar e processar áudio
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,6 +25,23 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+
+
+pp.use(bodyParser.json());
+
+app.post('/webhook', async (req, res) => {
+  try {
+    const { mediaKey, fileUrl } = req.body; // Supondo que você esteja recebendo esses dados no body
+
+    // Chama a função para descriptografar e processar o áudio
+    await handleAudioConversion(mediaKey, fileUrl);
+
+    res.status(200).send('Áudio processado com sucesso!');
+  } catch (error) {
+    console.error('Erro ao processar áudio:', error);
+    res.status(500).send('Erro ao processar áudio.');
+  }
+});
 
 // Rota principal
 app.get("/", (req, res) => {
